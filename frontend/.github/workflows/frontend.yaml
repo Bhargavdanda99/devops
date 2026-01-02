@@ -1,11 +1,11 @@
 name: Crud-Operation
 
 on:
-  push
-  #workflow_dispatch:
-  # push:
-  #   paths:
-  #     - "frontend/**"
+  workflow_dispatch:
+  push:
+    branches:
+      - feature
+
 
 jobs:
   unit-testing:
