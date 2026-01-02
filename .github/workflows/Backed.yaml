@@ -1,10 +1,7 @@
-name: Crud-Operation
+name: Backend CI Pipeline
 
 on:
   workflow_dispatch:
-#   push:
-#     branches:
-#       - feature
 
 
 jobs:
@@ -15,26 +12,26 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup NodeJS Version
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: backend/package-lock.json
 
       - name: Install Dependencies
-        working-directory: frontend
+        working-directory: backend
         run: npm install
 
       - name: Unit Testing
-        working-directory: frontend
+        working-directory: backend
         run: npm test
         continue-on-error: true
 
       - name: Archive Test Result
         uses: actions/upload-artifact@v4
         with:
-          name: Mocha-Test-Result
-          path: frontend/test-results.xml
+          name: Backend-Test-Result
+          path: backend/test-results.xml
 
   code-coverage:
     name: Code Coverage
@@ -45,26 +42,26 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
 
       - name: Install Dependencies
-        working-directory: frontend
+        working-directory: backend
         run: npm install
 
       - name: Check Code Coverage
-        working-directory: frontend
+        working-directory: backend
         run: npm run coverage
         continue-on-error: true
 
       - name: Archive Coverage Result
         uses: actions/upload-artifact@v4
         with:
-          name: Code-Coverage-Result
-          path: frontend/coverage
+          name: Backend-Code-Coverage
+          path: backend/coverage
           retention-days: 5
 
   docker:
-    name: Containerization
+    name: Backend Containerization
     runs-on: ubuntu-latest
     needs: [unit-testing, code-coverage]
     steps:
@@ -76,16 +73,24 @@ jobs:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
-      - name: Docker Build (Frontend)
+      - name: Debug Backend Directory
+        run: ls -la backend
+
+      - name: Docker Build (Backend)
         uses: docker/build-push-action@v6
         with:
-          context: ./frontend   # ✅ Correct
+          context: ./backend          # ✅ backend context
+          file: ./backend/Dockerfile  # ✅ explicit Dockerfile
           push: false
-          tags: bhargavdanda123/solar-system:${{ github.sha }}
+          tags: |
+            bhargavdanda123/backend-app:${{ github.sha }}
 
       - name: Docker Push
         uses: docker/build-push-action@v6
         with:
-          context: ./frontend   # ✅ Correct
+          context: ./backend
+          file: ./backend/Dockerfile
           push: true
-          tags: bhargavdanda123/solar-system:${{ github.sha }}
+          tags: |
+            bhargavdanda123/backend-app:${{ github.sha }}
+            bhargavdanda123/backend-app:latest
